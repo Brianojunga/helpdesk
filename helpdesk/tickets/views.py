@@ -1,7 +1,9 @@
 from rest_framework import viewsets, permissions
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
 from .models import Ticket
-from .serializers import TicketSerializer
+from .serializers import TicketSerializer, RegisterSerializer, ProfileSerializer
+from django.contrib.auth.models import User
+from uuid import UUID
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
@@ -11,12 +13,37 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Ticket.objects.all()
         if self.request.user.is_authenticated:
+            if self.request.user.is_superuser:
+                return queryset
             # Authenticated users can see their own tickets
-            queryset = queryset.filter(user=self.request.user)
+            return queryset.filter(user=self.request.user)
         else:
-            # Non-authenticated users can't list tickets (or handle differently)
-            queryset = Ticket.objects.none()
-        return queryset
+            public_id = self.request.query_params.get('public_id')
+            if public_id:
+                try:
+                   uuid_obj = UUID(public_id, 4)
+                except ValueError:
+                   return queryset.none()
+                return  queryset.filter(public_id = uuid_obj)
+        return queryset.none()
 
     def perform_create(self, serializer):
         serializer.save()
+
+
+class RegisterViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+    http_method_names = ['post']
+
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return User.objects.filter(user=self.request.user)
+
+
+
