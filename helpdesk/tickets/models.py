@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
 
 # Create your models here.
 class Ticket(models.Model):
@@ -18,6 +19,7 @@ class Ticket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, null=False, blank=False)
 
     def __str__(self):
         if self.user:
