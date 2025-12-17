@@ -1,8 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
+import slugify
 
 # Create your models here.
+class Company(models.Model):
+    name = models.CharField(max_length=35)
+    slug = models.SlugField(unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify.slugify(self.name)
+        super().save(*args, **kwargs)
+
+
 class Ticket(models.Model):
     STATUS_CHOICES = [
         ('open', 'Open'),
