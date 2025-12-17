@@ -15,9 +15,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         company = get_object_or_404(
             Company,
-            slug = self.kwargs['slug']
+            slug=self.kwargs['slug']
         )
-        queryset = queryset.filter(company=company)
+        queryset = Ticket.objects.filter(company=company)
         
         if self.request.user.is_authenticated:
             if self.request.user.is_superuser:
@@ -58,7 +58,11 @@ class ProfileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(user=self.request.user)
+        if self.request.user.is_superuser:
+            return User.objects.all()
+        if hasattr(self.request.user, 'company') and self.request.user.is_staff:
+            return User.objects.filter(company=self.request.company)
+        return User.objects.filter(id=self.request.user.id)
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
@@ -69,7 +73,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Company.objects.all()
-        if hasattr(self.request.user, 'company'):
+        if hasattr(self.request.user, 'company') and self.request.user.is_staff:
             return Company.objects.filter(pk=self.request.user.company.pk)
         return Company.objects.none()
 
