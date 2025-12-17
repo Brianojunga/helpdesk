@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 import uuid
-import slugify
+from django.utils.text import slugify
 
 # Create your models here.
 class Company(models.Model):
@@ -10,7 +10,7 @@ class Company(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify.slugify(self.name)
+            self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
 
@@ -21,6 +21,7 @@ class Ticket(models.Model):
         ('closed', 'Closed'),
     ]
     
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='tickets')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)

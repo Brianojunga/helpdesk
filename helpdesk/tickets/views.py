@@ -1,17 +1,24 @@
 from rest_framework import viewsets, permissions
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
-from .models import Ticket
-from .serializers import TicketSerializer, RegisterSerializer, ProfileSerializer
+from .models import Ticket, Company
+from .serializers import TicketSerializer, RegisterSerializer, ProfileSerializer, CompanySerializer
 from django.contrib.auth.models import User
 from uuid import UUID
+from django.shortcuts import get_object_or_404
+
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    
 
     def get_queryset(self):
-        queryset = Ticket.objects.all()
+        company = get_object_or_404(
+            Company,
+            slug = self.kwargs['slug']
+        )
+        queryset = queryset.filter(company=company)
+        
         if self.request.user.is_authenticated:
             if self.request.user.is_superuser:
                 return queryset
@@ -26,7 +33,15 @@ class TicketViewSet(viewsets.ModelViewSet):
                    return queryset.none()
                 return  queryset.filter(public_id = uuid_obj)
         return queryset.none()
-
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['company'] = get_object_or_404(
+            Company,
+            slug = self.kwargs['slug']
+        )
+        return context
+    
     def perform_create(self, serializer):
         serializer.save()
 
@@ -45,5 +60,17 @@ class ProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return User.objects.filter(user=self.request.user)
 
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    lookup_field = 'slug'
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Company.objects.all()
+        if hasattr(self.request.user, 'company'):
+            return Company.objects.filter(pk=self.request.user.company.pk)
+        return Company.objects.none()
 
 
