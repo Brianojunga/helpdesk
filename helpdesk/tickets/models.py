@@ -1,18 +1,23 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 import uuid
 from django.utils.text import slugify
 
 # Create your models here.
+User = settings.AUTH_USER_MODEL
+
 class Company(models.Model):
     name = models.CharField(max_length=35)
     slug = models.SlugField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name
 
 class Ticket(models.Model):
     STATUS_CHOICES = [
@@ -20,7 +25,7 @@ class Ticket(models.Model):
         ('in_progress', 'In Progress'),
         ('closed', 'Closed'),
     ]
-    
+    public_id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False, null=False, blank=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='tickets')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
     first_name = models.CharField(max_length=100, blank=True)
@@ -31,10 +36,19 @@ class Ticket(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, null=False, blank=False)
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tickets')
 
     def __str__(self):
         if self.user:
             return f"{self.subject} by {self.user.username}"
         else:
             return f"{self.subject} by {self.first_name} {self.last_name}"
+
+class TicketResolution(models.Model):
+    ticket=models.OneToOneField(Ticket, on_delete=models.CASCADE, related_name='resolution')
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Resolution for {self.ticket.public_id} with the subject {self.ticket.subject}'
+    
