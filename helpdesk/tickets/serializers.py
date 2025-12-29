@@ -46,11 +46,6 @@ class TicketSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         #remove the message because it does not exist in ticket model
         validated_data.pop('resolution_message', None)
-
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            validated_data['user'] = request.user
-        validated_data['company'] = self.context['company']
         return super().create(validated_data)
     
     @transaction.atomic
@@ -75,27 +70,18 @@ class TicketSerializer(serializers.ModelSerializer):
             )
         return instance
 
+
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
-        fields = ['id', 'name', 'slug', 'user']
-        read_only_fields = ['id', 'user']
+        fields = ['id', 'name', 'slug']
+        read_only_fields = ['id']
 
-    @transaction.atomic   
-    def create(self, validated_data):
+    def validate(self, data):
         request = self.context.get('request')
         user = request.user
-        
         if not user.is_authenticated:
             raise serializers.ValidationError('Authentication is required')
+        return data
         
-        company = Company.objects.create(
-            owner=user,
-            **validated_data
-        )
-
-        user.company = company
-        user.role='owner'
-        user.save(update_fields=['company', 'role'])
-
-        return company
+  
