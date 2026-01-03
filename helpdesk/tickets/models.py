@@ -10,7 +10,7 @@ class Company(models.Model):
     name = models.CharField(max_length=35)
     slug = models.SlugField(unique=True)
     email = models.EmailField(blank=False, null=False)
-    phone = models.phoneNumberField(blank=True, null=True)
+    phone = models.CharField(blank=True, null=True, max_length=12)
     address = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
