@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'tickets',
-    'dashboard',
+    'accounts',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,8 @@ REST_FRAMEWORK ={
         'rest_framework.authentication.SessionAuthentication',
     ]
 }
+
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
