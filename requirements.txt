@@ -5,6 +5,7 @@ djangorestframework_simplejwt==5.5.1
 dotenv==0.9.9
 drf-yasg==1.21.11
 Faker==38.2.0
+gunicorn==23.0.0
 inflection==0.5.1
 mysqlclient==2.2.7
 packaging==25.0
@@ -15,3 +16,4 @@ PyYAML==6.0.3
 sqlparse==0.5.4
 tzdata==2025.3
 uritemplate==4.2.0
+whitenoise==6.11.0
