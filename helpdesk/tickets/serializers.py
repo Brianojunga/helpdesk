@@ -27,7 +27,7 @@ class TicketSerializer(serializers.ModelSerializer):
                   'last_name', 'email', 'subject', 
                   'description', 'status', 'created_at',
                   'public_id', 'assigned_to', 'updated_at', 
-                  'resolution_message', 'resolution'
+                  'resolution_message', 'resolution', 'priority'
                 ]
         read_only_fields = ['public_id', 'user', 'created_at', 'updated_at', 'resolution']
 
@@ -64,6 +64,7 @@ class TicketSerializer(serializers.ModelSerializer):
                 ticket=instance,
                 message=resolution_message
             )
+            instance.priority = 0
         return instance
 
 

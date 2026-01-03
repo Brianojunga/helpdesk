@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from accounts.permissions import CanAssignAgent
 from .permissions import CanAccessTicketResolution
+from rest_framework.filters import OrderingFilter
 
 
 User =  get_user_model()
@@ -17,6 +18,8 @@ User =  get_user_model()
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    ordering_fields = ["priority"]
+    ordering = ["-priority"]
     
 
     def get_queryset(self):

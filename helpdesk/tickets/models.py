@@ -30,6 +30,12 @@ class Ticket(models.Model):
         ('in_progress', 'In Progress'),
         ('closed', 'Closed'),
     ]
+    PRIORITY_CHOICES = [
+        (0, 'None'),
+        (1, 'Low'),
+        (2, 'Medium'),
+        (3, 'High')
+    ]
     public_id = models.UUIDField(primary_key=True, default=uuid.uuid4, unique=True, editable=False, null=False, blank=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='tickets')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tickets')
@@ -39,6 +45,7 @@ class Ticket(models.Model):
     subject = models.CharField(max_length=200)
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    priority = models.IntegerField(choices=PRIORITY_CHOICES, default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tickets')
