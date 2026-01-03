@@ -1,10 +1,10 @@
 from django.db import models
-from django.conf import settings
+from django.contrib.auth import get_user_model
 import uuid
 from django.utils.text import slugify
 
 # Create your models here.
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class Company(models.Model):
     name = models.CharField(max_length=35)
