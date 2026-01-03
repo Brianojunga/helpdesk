@@ -70,14 +70,23 @@ class TicketSerializer(serializers.ModelSerializer):
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
-        fields = ['id', 'name', 'slug']
-        read_only_fields = ['id']
+        fields = ['id', 'name', 'slug', 'email', 'phone', 'address', 'description', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
     def validate(self, data):
         request = self.context.get('request')
         user = request.user
         if not user.is_authenticated:
             raise serializers.ValidationError('Authentication is required')
+    
+        if not data.get('name'):
+            raise serializers.ValidationError({
+                'name': 'Company name is required.'
+            }) 
+        if not data.get('email'):
+            raise serializers.ValidationError({
+                'email': 'Company email is required.'
+            })
         return data
         
   

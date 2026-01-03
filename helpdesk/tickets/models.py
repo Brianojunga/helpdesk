@@ -9,7 +9,12 @@ User = get_user_model()
 class Company(models.Model):
     name = models.CharField(max_length=35)
     slug = models.SlugField(unique=True)
+    email = models.EmailField(blank=False, null=False)
+    phone = models.phoneNumberField(blank=True, null=True)
+    address = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
