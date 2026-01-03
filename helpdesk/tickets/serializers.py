@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from .models import Ticket, Company, TicketResolution
 from django.db import transaction
-from django.conf import  settings
+from django.contrib.auth import get_user_model
 
 
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class TicketResolutionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,7 +23,7 @@ class TicketSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Ticket
-        fields = ['id', 'user', 'first_name', 
+        fields = ['user', 'first_name', 
                   'last_name', 'email', 'subject', 
                   'description', 'status', 'created_at',
                   'public_id', 'assigned_to', 'updated_at', 
@@ -43,10 +43,6 @@ class TicketSerializer(serializers.ModelSerializer):
                     })
         return data
     
-    def create(self, validated_data):
-        #remove the message because it does not exist in ticket model
-        validated_data.pop('resolution_message', None)
-        return super().create(validated_data)
     
     @transaction.atomic
     def update(self, instance, validated_data):
