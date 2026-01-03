@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -134,3 +135,8 @@ REST_FRAMEWORK ={
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+simplejwt = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # Access token valid for 1 hour
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),     # Refresh token valid for 7 days
+}
