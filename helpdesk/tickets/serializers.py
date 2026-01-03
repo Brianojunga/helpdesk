@@ -69,10 +69,21 @@ class TicketSerializer(serializers.ModelSerializer):
 
 
 class CompanySerializer(serializers.ModelSerializer):
+    owner = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Company
-        fields = ['id', 'name', 'slug', 'email', 'phone', 'address', 'description', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'email', 'phone', 'address', 'description', 'created_at', 'updated_at', 'owner']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'owner']
+    
+    def get_owner(self, obj):
+        owner = User.objects.filter(company=obj, role='owner').first()
+        if owner:
+            return {
+                'id': owner.id,
+                'username': owner.username,
+                'email': owner.email
+            }
+        return None
 
     def validate(self, data):
         request = self.context.get('request')

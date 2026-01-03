@@ -3,6 +3,7 @@ from tickets.models import Ticket, Company, TicketResolution
 from django.contrib.auth import get_user_model
 from faker import Faker
 import random
+import re
 
 User = get_user_model()
 
@@ -54,7 +55,13 @@ class Command(BaseCommand):
         companies = []
         for _ in range(5):
             name = faker.company()
-            company = Company.objects.create(name=name)
+            mail = faker.email()
+            phone = faker.phone_number()
+            digits_only = re.sub(r'\D', '', phone)
+            phone_12 = digits_only[:12]
+            address = faker.address()
+            description = faker.sentence()
+            company = Company.objects.create(name=name, email=mail, phone=phone_12, address=address, description=description)
             companies.append(company)
         self.stdout.write(self.style.SUCCESS('Created 5 sample companies.'))
 
@@ -90,6 +97,7 @@ class Command(BaseCommand):
             subject = faker.sentence(nb_words=6)
             description = faker.paragraph(nb_sentences=3)
             status_choice, assigned_to = status(users, company)
+            priority =  random.randint(0, 4)
             ticket = Ticket.objects.create(
                 user=user,
                 first_name=first_name,
@@ -99,7 +107,8 @@ class Command(BaseCommand):
                 description=description,
                 status=status_choice,
                 assigned_to=assigned_to,
-                company=company
+                company=company,
+                priority=priority
             )
             tickets.append(ticket)
         resolution_message(tickets, faker)
