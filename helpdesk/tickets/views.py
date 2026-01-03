@@ -1,11 +1,18 @@
-from rest_framework import viewsets, permissions
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Ticket, Company
-from .serializers import TicketSerializer, RegisterSerializer, ProfileSerializer, CompanySerializer
-from django.contrib.auth.models import User
+from .serializers import TicketSerializer, CompanySerializer
+from django.contrib.auth import get_user_model
 from uuid import UUID
 from django.shortcuts import get_object_or_404
+from django.db import transaction
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from accounts.permissions import CanAssignAgent
+from .permissions import CanAccessTicketResolution
 
+
+User =  get_user_model()
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
@@ -13,17 +20,23 @@ class TicketViewSet(viewsets.ModelViewSet):
     
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Ticket.objects.none()
+        
         company = get_object_or_404(
             Company,
-            slug=self.kwargs['slug']
+            # slug=self.kwargs['slug']
+            slug = self.kwargs.get('slug')
         )
+
         queryset = Ticket.objects.filter(company=company)
-        
-        if self.request.user.is_authenticated:
-            if self.request.user.is_superuser:
+        user = self.request.user
+
+        if user.is_authenticated:
+            if user.is_superuser or user.role in ['owner', 'admin']:
                 return queryset
             # Authenticated users can see their own tickets
-            return queryset.filter(user=self.request.user)
+            return queryset.filter(user=user)
         else:
             public_id = self.request.query_params.get('public_id')
             if public_id:
@@ -34,35 +47,45 @@ class TicketViewSet(viewsets.ModelViewSet):
                 return  queryset.filter(public_id = uuid_obj)
         return queryset.none()
     
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['company'] = get_object_or_404(
-            Company,
-            slug = self.kwargs['slug']
-        )
-        return context
-    
     def perform_create(self, serializer):
-        serializer.save()
 
-
-class RegisterViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
-    http_method_names = ['post']
-
-
-class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = ProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if self.request.user.is_superuser:
-            return User.objects.all()
-        if hasattr(self.request.user, 'company') and self.request.user.is_staff:
-            return User.objects.filter(company=self.request.company)
-        return User.objects.filter(id=self.request.user.id)
+        company = get_object_or_404(
+            Company,
+            slug=self.kwargs['slug']
+        )
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(
+            company=company,
+            user=user
+        )
+    
+    @action(detail=True, methods=['patch'], permission_classes=[CanAssignAgent])
+    def assign_agent(self, request):
+        ticket = self.get_object()
+        agent_id = request.data.get('assigned_to')
+        agent = get_object_or_404(User, pk=agent_id)
+        if agent.company != ticket.company:
+            return Response(
+                {'detail' : 'The agent does not belong to the same company as the ticket.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if ticket.assigned_to == agent:
+            return Response(
+                {'detail' : 'This agent is already assigned to this ticket.'},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        if ticked.status == 'closed':
+            return Response(
+                {'detail' : 'Cannot assign agent to a closed ticked.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        ticket.assigned_to = agent
+        ticket.status = 'in_progress'
+        ticket.save(update_fields=['assigned_to', 'status'])
+        return Response(
+            {'detail' : f'{agent.username} has been assigned to the ticket'},
+            status=status.HTTP_200_OK
+            )
 
 class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all()
@@ -71,10 +94,40 @@ class CompanyViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.is_superuser:
+        user = self.request.user
+
+        if user.is_superuser:
             return Company.objects.all()
-        if hasattr(self.request.user, 'company') and self.request.user.is_staff:
-            return Company.objects.filter(pk=self.request.user.company.pk)
+        if user.company and user.role=='owner':
+            return Company.objects.filter(pk=user.company.pk)
         return Company.objects.none()
+    
+    @transaction.atomic   
+    def create(self, request, *args, **kwargs):
+        user =self.request.user
+        
+        if user.company and user.role == 'owner':
+            return Response(
+                {'error': 'You already own a company. Each user can only own one company.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        data = request.data.copy()
+        data.pop('resolution_message', None)
 
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        
+        company = serializer.save()
 
+        user.company = company
+        user.role='owner'
+        user.save(update_fields=['company', 'role'])
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class TicketResolutionViewset(viewsets.ModelViewSet):
+    queryset = Ticket.objects.filter(status='closed').select_related('resolution')
+    serializer_class = TicketSerializer
+    permissson_classes = [CanAccessTicketResolution]
+    http_method_names = ['get']
