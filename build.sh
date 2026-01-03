@@ -7,8 +7,9 @@ set -o errexit
 pip install -r requirements.txt
 
 cd helpdesk
-# Collect static files for production
-python manage.py collectstatic --no-input
 
-# Run migrations
+# Run migrations first
 python manage.py migrate
+
+# Collect static files (including drf-yasg)
+python manage.py collectstatic --no-input --clear
