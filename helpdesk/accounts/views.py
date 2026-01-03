@@ -2,16 +2,16 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from .serializers import RegisterSerializer, ProfileSerializer, AssignAgentSerializer
 from rest_framework.permissions import IsAuthenticated
-from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
-from .permissions import IsOwnerOrAdmin
+from .permissions import CanAssignAgent
 from django.shortcuts import get_object_or_404
 
 # Create your views here.
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 class RegisterViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -32,7 +32,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
             return User.objects.filter(company=user.company)
         return User.objects.filter(id=user.id)
     
-    @action(detail=True, methods=['post'], permission_classes=[IsOwnerOrAdmin])
+    @action(detail=True, methods=['post'], permission_classes=[CanAssignAgent])
     def assign_role(self, request, pk=None):
         user_to_update = get_object_or_404(User, pk=pk)
         serializer = AssignAgentSerializer(
