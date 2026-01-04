@@ -38,6 +38,9 @@ class TicketViewSet(viewsets.ModelViewSet):
         if user.is_authenticated:
             if user.is_superuser or user.role in ['owner', 'admin']:
                 return queryset
+            if user.role == "agent":
+                # Agents can see tickets assigned to them
+                return queryset.filter(assigned_to=user)
             # Authenticated users can see their own tickets
             return queryset.filter(user=user)
         else:
@@ -63,7 +66,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         )
     
     @action(detail=True, methods=['patch'], permission_classes=[CanAssignAgent])
-    def assign_agent(self, request):
+    def assign_agent(self, request, pk=None, slug=None):
         ticket = self.get_object()
         agent_id = request.data.get('assigned_to')
         agent = get_object_or_404(User, pk=agent_id)
@@ -77,7 +80,7 @@ class TicketViewSet(viewsets.ModelViewSet):
                 {'detail' : 'This agent is already assigned to this ticket.'},
                 status = status.HTTP_400_BAD_REQUEST
             )
-        if ticked.status == 'closed':
+        if ticket.status == 'closed':
             return Response(
                 {'detail' : 'Cannot assign agent to a closed ticked.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -134,3 +137,26 @@ class TicketResolutionViewset(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
     permissson_classes = [CanAccessTicketResolution]
     http_method_names = ['get']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Ticket.objects.none()
+        
+        company = get_object_or_404(
+            Company,
+            slug=self.kwargs.get('slug')
+        )
+        user = self.request.user
+        if user.company == company and user.role in ['owner', 'admin', 'agent']:
+            return Ticket.objects.filter(
+                company=company, 
+                status='closed'
+                ).select_related('resolution')
+        if user:
+            return Ticket.objects.filter(
+                company=company,
+                status='closed',
+                user=user
+            ).select_related('resolution')
+        return Ticket.objects.none()
+        
