@@ -5,7 +5,7 @@ from .views import  TicketViewSet, CompanyViewSet, TicketResolutionViewset
 router = DefaultRouter()
 router.register(r'companies', CompanyViewSet, basename='company')
 router.register(
-    r'tickets-resolution', 
+    r'companies/(?P<slug>[^/.]+)/ticket-resolution', 
     TicketResolutionViewset, 
     basename='ticket-resolution'
     )
