@@ -49,13 +49,14 @@ class TicketSerializer(serializers.ModelSerializer):
         old_status = instance.status
         new_status = validated_data.get('status', old_status)
 
-        if old_status == new_status:
-            return
-        
+
         #remove the message before updating the message
         resolution_message = validated_data.pop('resolution_message', None)
 
         instance = super().update(instance, validated_data)
+
+        if old_status == new_status:
+            return instance
 
         
         #continue from here not done
@@ -65,6 +66,7 @@ class TicketSerializer(serializers.ModelSerializer):
                 message=resolution_message
             )
             instance.priority = 0
+            instance.save(update_fields=['priority'])
         return instance
 
 
