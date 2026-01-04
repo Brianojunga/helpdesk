@@ -22,6 +22,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         if User.objects.filter(username=username).exists():
             raise serializers.ValidationError("Username is already taken.")
+        return data
 
 
     def create(self, validated_data):
